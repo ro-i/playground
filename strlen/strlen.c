@@ -132,6 +132,36 @@ strlen2(const char *s)
 	}
 }
 
+/* portable */
+static size_t
+strlen3(const char * restrict s)
+{
+	const char * restrict base_ptr = s;
+
+	while(*s++);
+	return --s-base_ptr;
+}
+
+/* portable */
+static size_t
+strlen4(const char *s)
+{
+	size_t i = 0;
+
+	while(s[i++]);
+	return --i;
+}
+
+/* portable */
+static size_t
+strlen5(const char * restrict s)
+{
+	size_t i = 0;
+
+	while(s[i++]);
+	return --i;
+}
+
 static size_t
 (*parse_strlen_cmd(const char *arg))(const char *s)
 {
@@ -143,6 +173,12 @@ static size_t
 		return strlen1;
 	else if (!strcmp(arg, "strlen2"))
 		return strlen2;
+	else if (!strcmp(arg, "strlen3"))
+		return strlen3;
+	else if (!strcmp(arg, "strlen4"))
+		return strlen4;
+	else if (!strcmp(arg, "strlen5"))
+		return strlen5;
 	else
 		return NULL;
 }
@@ -153,9 +189,7 @@ usage(const char *name)
 	printf("usage: %s [STRLEN_CMD]\n\n"
 			"STRLEN_CMD may be:\n"
 			"  strlen  (default library version)\n"
-			"  strlen0\n"
-			"  strlen1\n"
-			"  strlen2\n",
+			"  strlen[0-5]\n",
 			name);
 }
 
