@@ -7,9 +7,9 @@ CFLAGS_DEBUG = -ggdb -std=c99 -pedantic -Wall -Wextra -Og $(INCS) $(CPPFLAGS)
 CFLAGS_DEBUG_NO_OPT = -ggdb -std=c99 -pedantic -Wall -Wextra -O0 $(INCS) $(CPPFLAGS)
 LDFLAGS = 
 
-ASFLAGS = -i /usr/share/sasm/include/ -f elf64 -Wall
-ASFLAGS_DEBUG = -g -i /usr/share/sasm/include/ -f elf64 -Wall
-ASFLAGS_DEBUG_NO_OPT = -O0 -g -i /usr/share/sasm/include/ -f elf64 -Wall
+ASFLAGS = -f elf64 -Wall
+ASFLAGS_DEBUG = -g -f elf64 -Wall
+ASFLAGS_DEBUG_NO_OPT = -O0 -g -f elf64 -Wall
 AS_LDFLAGS = -no-pie
 
 CC = gcc
@@ -38,10 +38,6 @@ $(bin): $(obj)
 
 $(bin_asm): $(obj_asm)
 	$(CC) $(AS_LDFLAGS) -o $@ $^
-
-macro.o:
-	gcc -c -Wno-implicit-function-declaration -o $@ \
-		/usr/share/sasm/NASM/macro.c
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
