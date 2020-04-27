@@ -1,5 +1,4 @@
-; Some pitfalls I stumbeled about:
-; https://robertimschweiler.com/notes_64bit_intel_assembly.html
+; For some documentation, see: https://github.com/hjl-tools/x86-psABI/wiki/x86-64-psABI-1.0.pdf
 
 ; extern declarations
 extern fdopen
