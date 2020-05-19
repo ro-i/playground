@@ -10,6 +10,10 @@
 #include <time.h>
 
 
+extern size_t strlen_asm(const char *s);
+extern size_t strlen_asm_opt(const char *s);
+
+
 static void *
 _realloc(void *p, size_t s)
 {
@@ -179,6 +183,10 @@ static size_t
 		return strlen4;
 	else if (!strcmp(arg, "strlen5"))
 		return strlen5;
+	else if (!strcmp(arg, "strlen_asm"))
+		return strlen_asm;
+	else if (!strcmp(arg, "strlen_asm_opt"))
+		return strlen_asm_opt;
 	else
 		return NULL;
 }
@@ -189,7 +197,9 @@ usage(const char *name)
 	printf("usage: %s [STRLEN_CMD]\n\n"
 			"STRLEN_CMD may be:\n"
 			"  strlen  (default library version)\n"
-			"  strlen[0-5]\n",
+			"  strlen[0-5] (different C implementations)\n"
+			"  strlen_asm (standard assembler implementation\n"
+			"  strlen_asm_opt (optimized assembler implementation\n",
 			name);
 }
 
