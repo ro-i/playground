@@ -10,3 +10,8 @@ strlen
 ------
 Several implementations of strlen - more or less portable, more or less fast.
 Some implementations written in C, others in Intel 64-bit Assembly.
+
+brainfuck
+---------
+A simple [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
+written in C/Assembly.
