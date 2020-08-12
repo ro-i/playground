@@ -15,3 +15,7 @@ brainfuck
 ---------
 A simple [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
 written in C/Assembly.
+
+i3bar
+-----
+A small Python script to populate i3bar (https://github.com/i3/i3) with useful data.
