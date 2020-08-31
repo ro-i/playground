@@ -58,4 +58,8 @@ FindFilesContainingRegex - Please provide a regex to search for: system.*[0-9]{1
 Tested FindFilesContainingRegex on 6869 files with a total of 1984 matches.
 FindFilesContainingRegex - test passed
 All tests passed successfully! :-)
+
+real	0m14.340s
+user	0m2.926s
+sys	0m0.246s
 ```
