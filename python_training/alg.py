@@ -8,6 +8,8 @@ import re
 import subprocess
 import sys
 
+from typing import Any, Sequence, TypeVar
+
 
 # Note: "Internally, a list is represented as an array [...]"
 # So getting and setting an item is in O(1).
@@ -15,6 +17,9 @@ import sys
 
 # sequence types documentation:
 # https://docs.python.org/3/library/stdtypes.html#typesseq
+
+
+T = TypeVar("T")
 
 
 class InvalidStateException(Exception):
@@ -33,16 +38,16 @@ class Alg:
     # name of specific Algorithm
     name = None
 
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         # are there valid values as input?
         self.input_initialized = False
         # initialize result
         self.result = None
 
-    def get_result(self):
+    def get_result(self) -> Any:
         return copy.copy(self.result)
 
-    def _print_result(self, ok, expected = None, was = None):
+    def _print_result(self, ok: bool, expected: Any = None, was: Any = None) -> None:
         if ok:
             if debug and expected is not None and was is not None:
                 print("{} - correct result - expected and was: {}"
@@ -56,40 +61,40 @@ class Alg:
         else:
             print(self.name + " - wrong result")
 
-    def set_input(self, *args):
+    def set_input(self, *args) -> None:
         raise NotImplementedError()
 
     # common run wrapper
-    def run(self):
+    def run(self) -> None:
         if not self.input_initialized:
             raise InvalidStateException()
         self._run()
 
     # do the actual work
-    def _run(self):
+    def _run(self) -> None:
         raise NotImplementedError()
 
-    def test(self, output = False, *args):
+    def test(self, output: bool = False, *args) -> bool:
         raise NotImplementedError()
 
-    def verify_result(self, output = False, *args):
+    def verify_result(self, output: bool = False, *args) -> bool:
         raise NotImplementedError()
 
 
 class SearchAlg(Alg):
-    def __init__(self, seq = None, element = None, *args):
+    def __init__(self, seq: Sequence[T] = None, element: T = None, *args) -> None:
         super().__init__(args)
         self.set_input(seq, element, args)
 
-    # static method
-    def search(seq, element):
+    @staticmethod
+    def search(seq: Sequence[T], element) -> int:
         raise NotImplementedError()
 
-    def _run(self):
+    def _run(self) -> None:
         # call appropriate static method - hack ?
         self.result = type(self).search(self.seq, self.element)
 
-    def set_input(self, seq, element, *args):
+    def set_input(self, seq: Sequence[T], element: T, *args) -> None:
         if seq is None or element is None:
             self.seq = None
             self.element = None
@@ -98,7 +103,7 @@ class SearchAlg(Alg):
         self.element = element
         self.input_initialized = True
 
-    def test(self, output = False, *args):
+    def test(self, output: bool = False, *args) -> bool:
         for i in range(Alg.iterations):
             # random sequence length
             seq_length = random.randrange(1, Alg.threshold_seq_length)
@@ -116,7 +121,7 @@ class SearchAlg(Alg):
                           Alg.threshold_item_value))
             return self.verify_result(output = output)
 
-    def verify_result(self, output = False, *args):
+    def verify_result(self, output: bool = False, *args) -> bool:
         if self.element in self.seq:
             ret = self.seq[self.result] == self.element
             if output:
@@ -129,11 +134,11 @@ class SearchAlg(Alg):
 
 
 class SortAlg(Alg):
-    def __init__(self, seq = None, *args):
+    def __init__(self, seq: Sequence = None, *args) -> None:
         super().__init__()
         self.set_input(seq, args)
 
-    def set_input(self, seq, *args):
+    def set_input(self, seq: Sequence, *args) -> None:
         if seq is None:
             self.seq = None
             return
@@ -141,13 +146,13 @@ class SortAlg(Alg):
         self.seq = list(seq)
         self.input_initialized = True
 
-    def _run(self):
+    def _run(self) -> None:
         self.sort(self.seq)
 
-    def sort(self, seq):
+    def sort(self, seq: Sequence) -> None:
         raise NotImplementedError()
 
-    def test(self, output = False, *args):
+    def test(self, output: bool = False, *args) -> bool:
         for i in range(Alg.iterations):
             # random sequence length
             seq_length = random.randrange(1, Alg.threshold_seq_length)
@@ -163,7 +168,7 @@ class SortAlg(Alg):
                           Alg.threshold_item_value))
             return self.verify_result(expected = sorted(seq), output = output)
 
-    def verify_result(self, expected = None, output = False, *args):
+    def verify_result(self, expected: Any = None, output: bool = False, *args) -> bool:
         if expected is None:
             return
 
@@ -177,19 +182,19 @@ class SortAlg(Alg):
 class BinarySearch(SearchAlg):
     name = "BinarySearch"
 
-    def set_input(self, seq, element, *args):
+    def set_input(self, seq: Sequence[T], element: T, *args) -> None:
         super().set_input(seq, element)
         if not self.input_initialized:
             return
         # binary search requires the sequence to be sorted
         self.seq = sorted(self.seq)
 
-    # static method
-    def search(seq, element):
+    @staticmethod
+    def search(seq: Sequence[T], element: T) -> int:
         return BinarySearch.__search(seq, element, 0, len(seq) - 1)
 
-    # static method
-    def __search(seq, element, low, high):
+    @staticmethod
+    def __search(seq: Sequence[T], element: T, low: int, high: int) -> int:
         if low > high:
             return -1
         mid = int((low + high) / 2)
@@ -204,17 +209,17 @@ class BinarySearch(SearchAlg):
 class MergeSort(SortAlg):
     name = "MergeSort"
 
-    def set_input(self, seq, *args):
+    def set_input(self, seq: Sequence[T], *args) -> None:
         super().set_input(seq)
         if not self.input_initialized:
             return
         # initialize helper sequence
         self.result = [None] * len(seq)
 
-    def sort(self, seq):
+    def sort(self, seq: Sequence[T]) -> None:
         self.__sort(seq, 0, len(seq) - 1)
 
-    def __sort(self, seq, low, high):
+    def __sort(self, seq: Sequence[T], low: int, high: int) -> None:
         if low > high:
             return
         elif low == high:
@@ -247,14 +252,14 @@ class MergeSort(SortAlg):
 class FindFilesContainingRegex(Alg):
     name = "FindFilesContainingRegex"
 
-    def __init__(self, dir = None, reg = None, *args):
+    def __init__(self, dir: os.PathLike = None, reg: str = None, *args) -> None:
         super().__init__(args)
         self.set_input(dir, reg, args)
         # for verify_result() as grep can tolerate more file types
         self.processed_files = []
         self.matches = 0
 
-    def __process_file(self, file):
+    def __process_file(self, file: os.PathLike) -> None:
         try:
             # initialize result entry
             self.result[file] = 0
@@ -268,7 +273,7 @@ class FindFilesContainingRegex(Alg):
         except:
             del self.result[file]
 
-    def _run(self):
+    def _run(self) -> None:
         self.result = {}
 
         if not os.path.exists(self.dir):
@@ -283,7 +288,7 @@ class FindFilesContainingRegex(Alg):
                 file = os.path.join(dirpath, files)
                 self.__process_file(file)
 
-    def set_input(self, dir, reg, *args):
+    def set_input(self, dir: os.PathLike, reg: str, *args) -> None:
         if dir is None or reg is None or reg == "":
             self.dir = None
             self.reg = None
@@ -293,7 +298,7 @@ class FindFilesContainingRegex(Alg):
         self.pat = re.compile(reg)
         self.input_initialized = True
 
-    def test(self, output = False, *args):
+    def test(self, output: bool = False, *args) -> bool:
         if self.dir is None:
             try:
                 dir = input(self.name + " - Please provide a directory for the test: ")
@@ -312,7 +317,7 @@ class FindFilesContainingRegex(Alg):
               .format(self.name, len(self.processed_files), self.matches))
         return self.verify_result(output = output)
 
-    def verify_result(self, output = False, *args):
+    def verify_result(self, output: bool = False, *args) -> bool:
         if not self.processed_files:
             if output:
                 self._print_result(ok = True, expected = dict(), was = self.result)
