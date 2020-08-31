@@ -35,6 +35,7 @@ What have I done?
 
 usage
 -----
+```
 usage: alg.py [-h] [-d] [-o]
 
 Run some algorithms and let them test themselves automatically with random input.
@@ -43,3 +44,4 @@ optional arguments:
   -h, --help    show this help message and exit
   -d, --debug   genrate additional output for debugging purposes (implies -o)
   -o, --output  inform on wrong results
+```
