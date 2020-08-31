@@ -255,15 +255,18 @@ class FindFilesContainingRegex(Alg):
         self.matches = 0
 
     def __process_file(self, file):
-        # force utf-8 encoding
-        with open(file, "r", encoding = "utf-8") as f:
+        try:
             # initialize result entry
             self.result[file] = 0
-            for line in f:
-                if self.pat.search(line):
-                    self.result[file] += 1
-            self.processed_files.append(file)
-            self.matches += self.result[file]
+            # force utf-8 encoding
+            with open(file, "r", encoding = "utf-8") as f:
+                for line in f:
+                    if self.pat.search(line):
+                        self.result[file] += 1
+                self.processed_files.append(file)
+                self.matches += self.result[file]
+        except:
+            del self.result[file]
 
     def _run(self):
         self.result = {}
@@ -278,11 +281,7 @@ class FindFilesContainingRegex(Alg):
             for files in filenames:
                 # get path to that file
                 file = os.path.join(dirpath, files)
-                try:
-                    self.__process_file(file)
-                except:
-                    # file was not processed correctly
-                    del self.result[file]
+                self.__process_file(file)
 
     def set_input(self, dir, reg, *args):
         if dir is None or reg is None or reg == "":
