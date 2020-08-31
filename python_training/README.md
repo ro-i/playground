@@ -36,13 +36,14 @@ What have I done?
 usage
 -----
 ```
-usage: alg.py [-h] [-d] [-o]
+usage: alg.py [-h] [-d] [-n] [-o]
 
 Run some algorithms and let them test themselves automatically with random input.
 
 optional arguments:
   -h, --help    show this help message and exit
   -d, --debug   genrate additional output for debugging purposes (implies -o)
+  -n, --numpy   play with numpy algorithms
   -o, --output  inform on wrong results
 ```
 

@@ -2,12 +2,14 @@
 
 import argparse
 import copy
+import numpy
 import os
 import random
 import re
 import subprocess
 import sys
 
+from numbers import Number
 from typing import Any, Sequence, TypeVar
 
 
@@ -104,6 +106,8 @@ class SearchAlg(Alg):
         self.input_initialized = True
 
     def test(self, output: bool = False, *args) -> bool:
+        ret = True
+
         for i in range(Alg.iterations):
             # random sequence length
             seq_length = random.randrange(1, Alg.threshold_seq_length)
@@ -116,10 +120,13 @@ class SearchAlg(Alg):
 
             self.run()
 
-            print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
-                  .format(self.name, Alg.iterations, Alg.threshold_seq_length,
-                          Alg.threshold_item_value))
-            return self.verify_result(output = output)
+            if not self.verify_result(output = output):
+                ret = False
+
+        print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
+              .format(self.name, Alg.iterations, Alg.threshold_seq_length,
+                      Alg.threshold_item_value))
+        return ret
 
     def verify_result(self, output: bool = False, *args) -> bool:
         if self.element in self.seq:
@@ -153,6 +160,8 @@ class SortAlg(Alg):
         raise NotImplementedError()
 
     def test(self, output: bool = False, *args) -> bool:
+        ret = True
+
         for i in range(Alg.iterations):
             # random sequence length
             seq_length = random.randrange(1, Alg.threshold_seq_length)
@@ -163,10 +172,13 @@ class SortAlg(Alg):
 
             self.run()
 
-            print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
-                  .format(self.name, Alg.iterations, Alg.threshold_seq_length,
-                          Alg.threshold_item_value))
-            return self.verify_result(expected = sorted(seq), output = output)
+            if not self.verify_result(expected = sorted(seq), output = output):
+                ret = False
+
+        print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
+              .format(self.name, Alg.iterations, Alg.threshold_seq_length,
+                      Alg.threshold_item_value))
+        return ret
 
     def verify_result(self, expected: Any = None, output: bool = False, *args) -> bool:
         if expected is None:
@@ -345,9 +357,62 @@ class FindFilesContainingRegex(Alg):
 
         if output:
             self._print_result(ok = ret, expected = tmp, was = self.result)
-
         return ret
 
+
+# "Sequence" is not really appropriate ...
+class TwoVectorAlg(Alg):
+    def __init__(self, a: Sequence[Number] = None, b: Sequence[Number] = None, *args) -> None:
+        super().__init__(self, args)
+        self.set_input(a, b, args)
+
+    def set_input(self, a: Sequence[Number], b: Sequence[Number], *args) -> None:
+        self.a = a
+        self.b = b
+        if a is not None and b is not None:
+            self.input_initialized = True
+        else:
+            return
+        self.a_np = numpy.array(a)
+        self.b_np = numpy.array(b)
+
+    def test(self, output: bool = False, *args) -> bool:
+        ret = True
+
+        for i in range(Alg.iterations):
+            # random sequence length
+            seq_length = random.randrange(1, Alg.threshold_seq_length)
+            # generate random sequences
+            a = random.sample(range(Alg.threshold_item_value), seq_length)
+            b = random.sample(range(Alg.threshold_item_value), seq_length)
+        
+            self.set_input(a, b)
+            self.run()
+
+            if not self.verify_result(output = output):
+                ret = False
+
+        print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
+              .format(self.name, Alg.iterations, Alg.threshold_seq_length,
+                      Alg.threshold_item_value))
+        return ret
+
+
+class DotProduct(TwoVectorAlg):
+    def _run(self) -> None:
+        self.result = numpy.dot(self.a_np, self.b_np)
+
+    def verify_result(self, output: bool = False, *args) -> bool:
+        tmp = 0
+        for i in range(len(self.a)):
+            tmp += self.a[i] * self.b[i]
+
+        ret = tmp == self.result
+
+        if output:
+            self._print_result(ret, expected = tmp, was = self.result)
+
+        return ret
 
 
 # global variables
@@ -363,6 +428,10 @@ argument_parser.add_argument(
     help = "genrate additional output for debugging purposes (implies -o)",
     action = "store_true")
 argument_parser.add_argument(
+    "-n", "--numpy",
+    help = "play with numpy algorithms",
+    action = "store_true")
+argument_parser.add_argument(
     "-o", "--output",
     help = "inform on wrong results",
     action = "store_true")
@@ -371,7 +440,10 @@ debug = args.debug
 
 
 # execution
-algorithms = [ BinarySearch(), MergeSort(), FindFilesContainingRegex() ]
+if args.numpy:
+    algorithms = [ DotProduct() ]
+else:
+    algorithms = [ BinarySearch(), MergeSort(), FindFilesContainingRegex() ]
 result = True
 
 for alg in algorithms:
