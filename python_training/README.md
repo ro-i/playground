@@ -45,3 +45,17 @@ optional arguments:
   -d, --debug   genrate additional output for debugging purposes (implies -o)
   -o, --output  inform on wrong results
 ```
+
+The output of a sample execution:
+```
+$ time ./alg.py
+Tested BinarySearch on 100 sequences with up to 1000 elements in the range 0 - 10000.
+BinarySearch - test passed
+Tested MergeSort on 100 sequences with up to 1000 elements in the range 0 - 10000.
+MergeSort - test passed
+FindFilesContainingRegex - Please provide a directory for the test: /usr/share/doc
+FindFilesContainingRegex - Please provide a regex to search for: system.*[0-9]{1,2}
+Tested FindFilesContainingRegex on 6869 files with a total of 1984 matches.
+FindFilesContainingRegex - test passed
+All tests passed successfully! :-)
+```
