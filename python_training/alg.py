@@ -2,6 +2,8 @@
 
 import argparse
 import copy
+import decimal
+import math
 import numpy
 import os
 import random
@@ -9,8 +11,9 @@ import re
 import subprocess
 import sys
 
+from decimal import Decimal
 from numbers import Number
-from typing import Any, Sequence, TypeVar
+from typing import Any, List, Sequence, TypeVar
 
 
 # Note: "Internally, a list is represented as an array [...]"
@@ -24,6 +27,7 @@ from typing import Any, Sequence, TypeVar
 T = TypeVar("T")
 
 
+# helper class
 class InvalidStateException(Exception):
     message = "algorithm input not initialized correctly"
 
@@ -31,14 +35,24 @@ class InvalidStateException(Exception):
         return InvalidStateException.message
 
 
+# helper class
+class DecimalRand:
+    @staticmethod
+    def sample(max_item_value: int, seq_length: int) -> List[Decimal]:
+        return [
+            # no need to use str -> Decimal to convert floats correctly
+            # because random.sample() returns ints
+            Decimal(i)
+            for i in random.sample(range(max_item_value), seq_length)
+        ]
+
+
 class Alg:
     # number of iterations in test() if any
     iterations = 100
-    threshold_seq_length = 1000
-    # threshold_item_value must be >= threshold_seq_length
-    threshold_item_value = 10000
-    # name of specific Algorithm
-    name = None
+    max_seq_length = 1000
+    # max_item_value must be >= max_seq_length
+    max_item_value = 10000
 
     def __init__(self, *args) -> None:
         # are there valid values as input?
@@ -49,19 +63,20 @@ class Alg:
     def get_result(self) -> Any:
         return copy.copy(self.result)
 
-    def _print_result(self, ok: bool, expected: Any = None, was: Any = None) -> None:
+    def _print_result(self, ok: bool, expected: Any = None,
+                      was: Any = None) -> None:
         if ok:
             if debug and expected is not None and was is not None:
                 print("{} - correct result - expected and was: {}"
-                      .format(self.name, self.result))
+                      .format(type(self).__name__, self.result))
             elif debug:
-                print(self.name + " - correct result")
+                print(type(self).__name__ + " - correct result")
             return
         elif expected is not None and was is not None:
             print("{} - wrong result - expected: {}, but was: {}"
-                  .format(self.name, expected, was))
+                  .format(type(self).__name__, expected, was))
         else:
-            print(self.name + " - wrong result")
+            print(type(self).__name__ + " - wrong result")
 
     def set_input(self, *args) -> None:
         raise NotImplementedError()
@@ -84,7 +99,8 @@ class Alg:
 
 
 class SearchAlg(Alg):
-    def __init__(self, seq: Sequence[T] = None, element: T = None, *args) -> None:
+    def __init__(self, seq: Sequence[T] = None, element: T = None,
+                 *args) -> None:
         super().__init__(args)
         self.set_input(seq, element, args)
 
@@ -108,14 +124,16 @@ class SearchAlg(Alg):
     def test(self, output: bool = False, *args) -> bool:
         ret = True
 
-        for i in range(Alg.iterations):
+        for i in range(type(self).iterations):
             # random sequence length
-            seq_length = random.randrange(1, Alg.threshold_seq_length)
+            seq_length = random.randrange(1, type(self).max_seq_length)
             # generate random sequence
-            seq = random.sample(range(Alg.threshold_item_value), seq_length)
+            seq = random.sample(range(type(self).max_item_value), seq_length)
 
             # cf. https://stackoverflow.com/a/34371844
-            element = random.choice(list(set(range(Alg.threshold_item_value))-set(seq)))
+            element = random.choice(list(
+                set(range(type(self).max_item_value))-set(seq)
+            ))
             self.set_input(seq, element)
 
             self.run()
@@ -123,9 +141,10 @@ class SearchAlg(Alg):
             if not self.verify_result(output = output):
                 ret = False
 
-        print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
-              .format(self.name, Alg.iterations, Alg.threshold_seq_length,
-                      Alg.threshold_item_value))
+        print("Tested {} on {} sequences with up to {} elements in the range "
+               "0 - {}.".format(type(self).__name__, type(self).iterations,
+                                 type(self).max_seq_length,
+                                 type(self).max_item_value))
         return ret
 
     def verify_result(self, output: bool = False, *args) -> bool:
@@ -142,7 +161,7 @@ class SearchAlg(Alg):
 
 class SortAlg(Alg):
     def __init__(self, seq: Sequence = None, *args) -> None:
-        super().__init__()
+        super().__init__(args)
         self.set_input(seq, args)
 
     def set_input(self, seq: Sequence, *args) -> None:
@@ -162,11 +181,11 @@ class SortAlg(Alg):
     def test(self, output: bool = False, *args) -> bool:
         ret = True
 
-        for i in range(Alg.iterations):
+        for i in range(type(self).iterations):
             # random sequence length
-            seq_length = random.randrange(1, Alg.threshold_seq_length)
+            seq_length = random.randrange(1, type(self).max_seq_length)
             # generate random sequence
-            seq = random.sample(range(Alg.threshold_item_value), seq_length)
+            seq = random.sample(range(type(self).max_item_value), seq_length)
 
             self.set_input(seq)
 
@@ -175,12 +194,14 @@ class SortAlg(Alg):
             if not self.verify_result(expected = sorted(seq), output = output):
                 ret = False
 
-        print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
-              .format(self.name, Alg.iterations, Alg.threshold_seq_length,
-                      Alg.threshold_item_value))
+        print("Tested {} on {} sequences with up to {} elements in the range "
+               "0 - {}.".format(type(self).__name__, type(self).iterations,
+                                type(self).max_seq_length,
+                                type(self).max_item_value))
         return ret
 
-    def verify_result(self, expected: Any = None, output: bool = False, *args) -> bool:
+    def verify_result(self, expected: Any = None, output: bool = False,
+                      *args) -> bool:
         if expected is None:
             return
 
@@ -192,8 +213,6 @@ class SortAlg(Alg):
 
 
 class BinarySearch(SearchAlg):
-    name = "BinarySearch"
-
     def set_input(self, seq: Sequence[T], element: T, *args) -> None:
         super().set_input(seq, element)
         if not self.input_initialized:
@@ -219,8 +238,6 @@ class BinarySearch(SearchAlg):
 
 
 class MergeSort(SortAlg):
-    name = "MergeSort"
-
     def set_input(self, seq: Sequence[T], *args) -> None:
         super().set_input(seq)
         if not self.input_initialized:
@@ -262,8 +279,6 @@ class MergeSort(SortAlg):
 # the number of matching lines per file.
 # (The matching is line based, without multiline support.)
 class FindFilesContainingRegex(Alg):
-    name = "FindFilesContainingRegex"
-
     def __init__(self, dir: os.PathLike = None, reg: str = None, *args) -> None:
         super().__init__(args)
         self.set_input(dir, reg, args)
@@ -313,12 +328,14 @@ class FindFilesContainingRegex(Alg):
     def test(self, output: bool = False, *args) -> bool:
         if self.dir is None:
             try:
-                dir = input(self.name + " - Please provide a directory for the test: ")
+                dir = input(type(self).__name__
+                            + " - Please provide a directory for the test: ")
             except Exception as e:
                 sys.exit(e)
         if self.reg is None:
             try:
-                regex = input(self.name + " - Please provide a regex to search for: ")
+                regex = input(type(self).__name__
+                              + " - Please provide a regex to search for: ")
             except Exception as e:
                 sys.exit(e)
 
@@ -326,13 +343,14 @@ class FindFilesContainingRegex(Alg):
         self.run()
 
         print("Tested {} on {} files with a total of {} matches."
-              .format(self.name, len(self.processed_files), self.matches))
+              .format(type(self).__name__, len(self.processed_files), self.matches))
         return self.verify_result(output = output)
 
     def verify_result(self, output: bool = False, *args) -> bool:
         if not self.processed_files:
             if output:
-                self._print_result(ok = True, expected = dict(), was = self.result)
+                self._print_result(ok = True, expected = dict(),
+                                   was = self.result)
             return True
 
         try:
@@ -342,7 +360,7 @@ class FindFilesContainingRegex(Alg):
                                   + self.processed_files,
                                   stdout = subprocess.PIPE, encoding = "utf-8")
         except Exception as e:
-            print(self.name + " - could not verify result: " + str(e))
+            print(type(self).__name__ + " - could not verify result: " + str(e))
             return
 
         # initialize
@@ -360,42 +378,91 @@ class FindFilesContainingRegex(Alg):
         return ret
 
 
-# "Sequence" is not really appropriate ...
-class TwoVectorAlg(Alg):
-    def __init__(self, a: Sequence[Number] = None, b: Sequence[Number] = None, *args) -> None:
-        super().__init__(self, args)
-        self.set_input(a, b, args)
+# Does this algorithm has a fixed number of vectors to operate on?
+# A value of vec_num = 0 means no, any other value represents this number.
+# (cf. child classes)
+# "max_vec_num" does not have any affect in classes where vec_num != 0.
+class MultiVectorAlg(Alg):
+    vec_num = 0
+    max_vec_num = 100
 
-    def set_input(self, a: Sequence[Number], b: Sequence[Number], *args) -> None:
-        self.a = a
-        self.b = b
-        if a is not None and b is not None:
-            self.input_initialized = True
-        else:
+    def __init__(self, vectors: List[Sequence[Decimal]] = None, *args) -> None:
+        super().__init__(args)
+        self.set_input(vectors, *args)
+
+    def set_input(self, vectors: List[Sequence[Decimal]], *args) -> None:
+        if vectors is None:
             return
-        self.a_np = numpy.array(a)
-        self.b_np = numpy.array(b)
+        elif (len(vectors) == 0 or
+              (type(self).vec_num != 0 and len(vectors) != type(self).vec_num)):
+            print(len(vectors))
+            print(type(self).vec_num)
+            raise InvalidStateException()
+        # verify if every vector has the same length
+        length = len(vectors[0])
+        for vec in vectors:
+            if len(vec) != length:
+                raise InvalidStateException()
+        self.vectors = vectors
+        self.vectors_np = [ numpy.array(v) for v in vectors ]
+        self.input_initialized = True
 
     def test(self, output: bool = False, *args) -> bool:
         ret = True
 
-        for i in range(Alg.iterations):
-            # random sequence length
-            seq_length = random.randrange(1, Alg.threshold_seq_length)
-            # generate random sequences
-            a = random.sample(range(Alg.threshold_item_value), seq_length)
-            b = random.sample(range(Alg.threshold_item_value), seq_length)
-        
-            self.set_input(a, b)
+        for i in range(type(self).iterations):
+            # random vector length
+            vec_length = random.randrange(1, type(self).max_seq_length)
+            # random number of vectors if type(self).vec_num == 0
+            if type(self).vec_num == 0:
+                vec_num = random.randrange(1, type(self).max_vec_num)
+            else:
+                vec_num = type(self).vec_num
+            # generate random vectors
+            vectors = [
+                DecimalRand.sample(type(self).max_item_value, vec_length)
+                for i in range(vec_num)
+            ]
+
+            self.set_input(vectors)
             self.run()
 
             if not self.verify_result(output = output):
                 ret = False
 
-        print("Tested {} on {} sequences with up to {} elements in the range 0 - {}."
-              .format(self.name, Alg.iterations, Alg.threshold_seq_length,
-                      Alg.threshold_item_value))
+        print("Tested {} in {} iterations using {} vectors with each up "
+              "to {} elements in the range 0 - {}."
+              .format(type(self).__name__, type(self).iterations,
+                      "up to {}".format(type(self).max_vec_num)
+                      if type(self).vec_num == 0 else type(self).vec_num,
+                      type(self).max_seq_length, type(self).max_item_value))
         return ret
+
+
+class OneVectorAlg(MultiVectorAlg):
+    vec_num = 1
+
+    def set_input(self, vectors: List[Sequence[Decimal]], *args) -> None:
+        super().set_input(vectors)
+        if not self.input_initialized:
+            return
+        # alias for our vector
+        self.a = self.vectors[0]
+        self.a_np = self.vectors_np[0]
+
+
+class TwoVectorAlg(MultiVectorAlg):
+    vec_num = 2
+
+    def set_input(self, vectors: List[Sequence[Decimal]], *args) -> None:
+        super().set_input(vectors)
+        if not self.input_initialized:
+            return
+        # aliases for the two vectors
+        self.a = self.vectors[0]
+        self.b = self.vectors[1]
+        self.a_np = self.vectors_np[0]
+        self.b_np = self.vectors_np[1]
 
 
 class DotProduct(TwoVectorAlg):
@@ -403,7 +470,7 @@ class DotProduct(TwoVectorAlg):
         self.result = numpy.dot(self.a_np, self.b_np)
 
     def verify_result(self, output: bool = False, *args) -> bool:
-        tmp = 0
+        tmp = Decimal(0)
         for i in range(len(self.a)):
             tmp += self.a[i] * self.b[i]
 
@@ -415,10 +482,105 @@ class DotProduct(TwoVectorAlg):
         return ret
 
 
+# norm?
+class VectorLength(OneVectorAlg):
+    def _run(self) -> None:
+        self.result = Decimal.sqrt(self.a_np.dot(self.a_np))
+
+
+class VectorAddition(MultiVectorAlg):
+    def _run(self) -> None:
+        self.result = numpy.zeros(self.vectors_np[0].size, dtype = Decimal)
+        for vec in self.vectors_np:
+            self.result += vec
+
+    def verify_result(self, output: bool = False, *args) -> bool:
+        tmp = [Decimal(0)] * len(self.vectors[0])
+        for vec in self.vectors:
+            tmp = [ i + j for i, j in zip(tmp, vec) ]
+
+        ret = (numpy.array(tmp) == self.result).all()
+        if output:
+            self._print_result(ret, expected = tmp, was = self.result)
+
+        return ret
+
+
+class VectorMultiplication(MultiVectorAlg):
+    def _run(self) -> None:
+        self.result = numpy.ones(self.vectors_np[0].size, dtype = Decimal)
+        for vec in self.vectors_np:
+            self.result *= vec
+
+    def verify_result(self, output: bool = False, *args) -> bool:
+        tmp = [Decimal(1)] * len(self.vectors[0])
+        for vec in self.vectors:
+            tmp = [ i * j for i, j in zip(tmp, vec) ]
+
+        ret = (numpy.array(tmp) == self.result).all()
+        if output:
+            self._print_result(ret, expected = tmp, was = self.result)
+
+        return ret
+
+# result: Orthonormalbasis
+class GramSchmidt(MultiVectorAlg):
+    max_vec_num = 25
+
+    def _run(self) -> None:
+        self.result = []
+        dp = DotProduct()
+        vl = VectorLength()
+        m = 0
+        for vec in self.vectors_np:
+            tmp = numpy.array(vec)
+            for o_vec in self.result:
+                dp.set_input([o_vec, vec])
+                dp.run()
+                tmp = tmp - dp.get_result() * o_vec
+            vl.set_input([tmp])
+            vl.run()
+            n = vl.get_result()
+            if math.isclose(n, 0, abs_tol = 1e-10):
+                continue
+            self.result.append(tmp / n)
+            m += 1
+
+    # Note: This does not really verify the result :-) (TODO)
+    def verify_result(self, output: bool = False, *args) -> bool:
+        ret = True
+        vl = VectorLength([self.result[0]])
+
+        for i in range(1, len(self.result)):
+            vl.set_input([self.result[i]])
+            vl.run()
+            if not math.isclose(vl.get_result(), 1):
+                print("huhu: {}".format(vl.get_result()))
+                ret = False
+                break
+            if i == 0:
+                continue
+            if not math.isclose(numpy.dot(self.result[i-1], self.result[i]), 0,
+                               abs_tol = 1e-10):
+                print(numpy.dot(self.result[i-1], self.result[i]))
+                ret = False
+                break
+        
+        if output:
+            self._print_result(ret)
+
+        return ret
+
+
+# settings
+#decimal.getcontext().prec = 50 # default = 28
+
 # global variables
-debug = False
-description = "Run some algorithms and let them test themselves automatically "\
-        + "with random input."
+debug: bool = False
+description: str = (
+    "Run some algorithms and let them test themselves automatically with "
+    "random input."
+)
 
 
 # command line argument parsing
@@ -441,7 +603,8 @@ debug = args.debug
 
 # execution
 if args.numpy:
-    algorithms = [ DotProduct() ]
+    algorithms = [ DotProduct(), VectorAddition(), VectorMultiplication(),
+                  GramSchmidt() ]
 else:
     algorithms = [ BinarySearch(), MergeSort(), FindFilesContainingRegex() ]
 result = True
@@ -449,9 +612,9 @@ result = True
 for alg in algorithms:
     ret = alg.test(output = args.output or args.debug)
     if ret:
-        print("\033[32m{} - test passed\033[00m".format(alg.name))
+        print("\033[32m{} - test passed\033[00m".format(type(alg).__name__))
     else:
-        print("\033[31m{} - test failed\033[00m".format(alg.name))
+        print("\033[31m{} - test failed\033[00m".format(type(alg).__name__))
         result = False
 
 if result:
