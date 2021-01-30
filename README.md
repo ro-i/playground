@@ -16,3 +16,6 @@ brainfuck
 A simple [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
 written in C/Assembly.
 
+takeuchi
+--------
+A lazy implemantation of the takeuchi function as bash script. :D
