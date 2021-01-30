@@ -4,7 +4,7 @@ t () {
 	local x=$(eval $1)
 	local y=$(eval $2)
 
-	if ((x <= z)); then
+	if ((x <= y)); then
 		echo $y
 	else
 		local z=$(eval $3)
