@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Cache where
+module Cache (Cache, Function, Result, empty, lookupOrEval) where
 
 import GHC.Generics
 import qualified Data.Hashable as H
@@ -12,22 +12,26 @@ newtype Cache k v = Cache (HM.HashMap k v)
 
 -- name (String): function name
 -- args: function arguments
--- result: result of this function applied to this arguments.
-data Entry args result = Entry String args result
+data Function args = Function String args
     deriving (Eq, Generic)
 
-instance (Show args, Show result) => Show (Entry args result) where
-    show (Entry name args result) =
-        name ++ " (" ++ show args ++ ") :" ++ show result
+instance (Show args) => Show (Function args) where
+    show (Function name args) = name ++ " (" ++ show args ++ ")"
 
-instance (H.Hashable args, H.Hashable result) => H.Hashable (Entry args result)
+newtype Result result = Result result
+
+instance (Show result) => Show (Result result) where
+    show (Result result) = show result
+
+instance (H.Hashable args) => H.Hashable (Function args)
 
 
 empty :: Cache k v
 empty = Cache HM.empty
 
-lookupOrEval :: (Eq k, H.Hashable k) => k -> Cache k v -> (v, Cache k v)
-lookupOrEval k cache@(Cache hm)
+lookupOrEval :: (Eq a, H.Hashable a) => Function a -> Cache (Function a) (Result r)
+             -> (Result r, Cache (Function a) (Result r))
+lookupOrEval f cache@(Cache hm)
   | isJust cached = (fromJust cached, cache)
   | otherwise = undefined -- evaluate and add to cache
-  where cached = HM.lookup k hm
+  where cached = HM.lookup f hm
