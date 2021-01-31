@@ -18,12 +18,12 @@ data Function args = Function String args
 instance (Show args) => Show (Function args) where
     show (Function name args) = name ++ " (" ++ show args ++ ")"
 
+instance (H.Hashable args) => H.Hashable (Function args)
+
 newtype Result result = Result result
 
 instance (Show result) => Show (Result result) where
     show (Result result) = show result
-
-instance (H.Hashable args) => H.Hashable (Function args)
 
 
 empty :: Cache k v
