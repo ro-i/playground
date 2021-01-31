@@ -1,0 +1,21 @@
+cabal-version:       2.2
+name:                Memoization
+version:             0.1
+author:              Robert Imschweiler
+maintainer:          ro-i@posteo.de
+build-type:          Simple
+
+common common-all
+  default-language:    Haskell2010
+  build-depends:       base == 4.*
+
+executable memoization
+  import:              common-all
+  main-is:             src/Main.hs
+
+library
+  import:              common-all
+  hs-source-dirs:      src/
+  exposed-modules:     Cache
+  build-depends:       unordered-containers,
+                       hashable
