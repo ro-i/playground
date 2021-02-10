@@ -24,3 +24,7 @@ A lazy implemantation of the takeuchi function as bash and as perl script. :D
 Memoization
 -----------
 Some experiments with a function cache in Haskell.
+
+list
+----
+Some crazy weird haskell stuff... :D
