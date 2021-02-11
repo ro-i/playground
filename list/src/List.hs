@@ -12,7 +12,13 @@ newtype List a = List {
     deriving Eq
 
 instance (Show a) => Show (List a) where
-    show (List l) = '[' : IntMap.foldr (\e str -> show e P.++ str) "]" l
+    show (List l)
+      | IntMap.null l = "[]"
+      | otherwise = '[' : drop 1 (IntMap.foldr (\e str -> ',' : show e P.++ str) "]" l)
+
+prop_show :: (Show a) => [a] -> Bool
+prop_show l =
+    show l == show (fromWrongList l)
 
 
 fromWrongList :: [a] -> List a
