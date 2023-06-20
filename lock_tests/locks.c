@@ -8,6 +8,7 @@
 #define _GNU_SOURCE
 
 #include <errno.h>
+#include <limits.h>
 #include <linux/futex.h>
 #include <pthread.h>
 #include <stdatomic.h>
@@ -30,7 +31,11 @@
         exit(EXIT_FAILURE); \
     } while (0)
 
-typedef uint32_t futex_t;
+typedef struct {
+    atomic_uint value;
+    atomic_uint waiters;
+} futex_t;
+
 typedef atomic_flag spinlock_t;
 
 typedef struct Lock Lock;
@@ -53,7 +58,9 @@ static spinlock_t _my_spinlock;
 
 static inline void futex_init(Lock* lock)
 {
-    *(futex_t*)lock->lock = 0;
+    futex_t* futex = (futex_t*)lock->lock;
+    futex->value = 0;
+    futex->waiters = 0;
 }
 
 static inline void futex_destroy(Lock* lock)
@@ -63,16 +70,31 @@ static inline void futex_destroy(Lock* lock)
 
 static inline void futex_lock(Lock* lock)
 {
-    while (__sync_val_compare_and_swap((futex_t*)lock->lock, 0, 1)) {
-        syscall(SYS_futex, (futex_t*)lock->lock, FUTEX_WAIT_PRIVATE, 1, NULL, NULL, 0);
+    unsigned zero = 0;
+    futex_t* futex = (futex_t*)lock->lock;
+
+    int cnt = 0;
+    while (atomic_compare_exchange_strong(&futex->value, &zero, 1)) {
+        __asm__ volatile("pause");
+        if (cnt > 500) {
+            atomic_fetch_add(&futex->waiters, 1);
+            syscall(SYS_futex, &futex->value, FUTEX_WAIT_PRIVATE, NULL, NULL, 0);
+            atomic_fetch_sub(&futex->waiters, 1);
+        } else {
+            cnt++;
+        }
     }
 }
 
+// Wake up 1 (arbitrary) thread or use INT_MAX to wake up all threads.
 static inline void futex_unlock(Lock* lock)
 {
-    (void)__sync_fetch_and_sub((futex_t*)lock->lock, 1);
-    // Wake up 1 (arbitrary) thread. We could also use INT_MAX here to wake up all threads.
-    syscall(SYS_futex, (futex_t*)lock->lock, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
+    futex_t* futex = (futex_t*)lock->lock;
+
+    atomic_fetch_sub(&futex->value, 1);
+    if (atomic_load(&futex->waiters)) {
+        syscall(SYS_futex, &futex->value, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
+    }
 }
 
 static inline void mutex_init(Lock* lock)
