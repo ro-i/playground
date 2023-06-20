@@ -91,7 +91,8 @@ static inline void futex_unlock(Lock* lock)
 {
     futex_t* futex = (futex_t*)lock->lock;
 
-    atomic_fetch_sub(&futex->value, 1);
+    //atomic_fetch_sub(&futex->value, 1);
+    atomic_store_explicit(&futex->value, 0, memory_order_release);
     if (atomic_load(&futex->waiters)) {
         syscall(SYS_futex, &futex->value, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
     }
